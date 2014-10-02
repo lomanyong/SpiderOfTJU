@@ -28,12 +28,12 @@ curl_setopt($ch, CURLOPT_COOKIEJAR, $cookie);
 $content = curl_exec($ch);
 curl_close($ch);
 
-preg_match_all("/<tr height = \"20\" bgcolor=\"#F+\">(.*?)<\/tr>/is", $content , $row_matches);
+preg_match_all("/<tr height = \"20\" bgcolor=\"#F+\">(.*?)<\/tr>/is", iconv("GBK", "UTF-8", $content), $row_matches);
 
 $result = array();
 if ($row_matches) {
   foreach ($row_matches[1] as $row) {
-    preg_match_all("/<td[^>]+><[^>]+>(.*?)<\/font><\/td>/is", trim($row), $matches);
+    preg_match_all("/<td[^>]+>[^<]*<[^>]+>(.*?)<\/font>[^<]*<\/td>/is", trim($row), $matches);
     $tmp = array();
     $details = $matches[1];
     $tmp['classid'] = trim($details[0]);
@@ -43,25 +43,48 @@ if ($row_matches) {
     $tmp['nature'] = trim($details[4]);
     $tmp['coursenum'] = trim($details[5]);
     $tmp['teacher'] = trim($details[6]);
-    $tmp['arrange'] = trim($details[7]);
-    $tmp['fromto'] = trim($details[8]);
+    $tmp['arrange'] = getClassArrangement(trim($details[8]));
+    $tmp['startend'] = getStartAndEndWeek(trim($details[9]));
+    $tmp['college'] = trim($details[10]);
     $result[] = $tmp;
   }
 }
 
-var_dump($result);
+dd($result);
 
-function getClassArrange($str) {
+function dd($obj) {
+  echo "<pre>";
+  var_dump($obj);
+  echo "</pre>";
+}
+
+function getClassArrangement($str) {
   $arrange = array();
   $times = explode("<br/>", $str);
   foreach ($times as $single) {
-    $details = explode(",", $single);
-    $arrange['weektimes'] = trim($details[0]);
-    $arrange['week'] = trim($details[1]);
-    $tmp = explode(' ', trim($details[2]));
-    $arrange['tmp'] = $tmp;
+    if ($single != '') {
+      $arr = array();
+      $details = explode("，", $single);
+      $arr['weektimes'] = trim($details[0]);
+      $arr['weekday'] = substr($details[1], 3);
+      $convert = preg_replace("/\s+/s", "|", $details[2]);
+      $tmp = explode('|', $convert);
+      $fromto =  explode('-', preg_replace("/[^0-9-]/", "", $tmp[0]));
+      $arr['from'] = $fromto[0];
+      $arr['to'] = $fromto[1];
+      $arr['room'] = $tmp[1];
+      $arrange[] = $arr;
+    }
   }
   return $arrange;
+}
+
+function getStartAndEndWeek($str) {
+  $arr = explode('-', $str);
+  $startend = array();
+  $startend['start'] = $arr[0];
+  $startend['end'] = $arr[1];
+  return $startend;
 }
 
 ?>
