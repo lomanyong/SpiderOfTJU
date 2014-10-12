@@ -59,6 +59,9 @@ function dd($obj) {
 }
 
 function getClassArrangement($str) {
+  if (trim($str) == '') {
+    return array();
+  }
   $arrange = array();
   $times = explode("<br/>", $str);
   foreach ($times as $single) {
